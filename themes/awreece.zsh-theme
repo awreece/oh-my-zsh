@@ -58,9 +58,9 @@ function is_ssh() {
 
 function maybe_host() {
   if is_ssh; then
-   echo '%m:' 
+   echo '%{$fg[cyan]%}%m:%{$reset_color%}'
   fi
 }
 
-PROMPT='%{$fg[blue]%}$(maybe_host)%~%#%{$reset_color%} '
+PROMPT='$(maybe_host)%{$fg[blue]%}%~%#%{$reset_color%} '
 RPROMPT='$(git_prompt_info)$(command_time)%{$reset_color%}'
