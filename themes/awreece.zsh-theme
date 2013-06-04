@@ -3,9 +3,13 @@ ZSH_THEME_GIT_PROMPT_SUFFIX="%{$fg[yellow]%}]%{$reset_color%} "
 ZSH_THEME_GIT_PROMPT_DIRTY="%{$fg[red]%}*%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_CLEAN=""
 
+# Print time from last command iff it took longer than threshold seconds.
 ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
-ZSH_THEME_COMMAND_TIME_PREFIX="%{$reset_color%}%(?.%{$fg[green]%}.%{$fg[red]%})"
-ZSH_THEME_COMMAND_TIME_SUFFIX="%{$reset_color%} "
+ZSH_THEME_COMMAND_TIME_PREFIX="%(?.%{$fg[green]%}.%{$fg[red]%})"
+ZSH_THEME_COMMAND_TIME_SUFFIX="%{$reset_color%}"
+
+ZSH_THEME_SSH_HOST_PREFIX="%{$fg[cyan]%}"
+ZSH_THEME_SSH_HOST_SUFFIX="%{$reset_color%} "
 
 zmodload zsh/datetime
 
@@ -17,6 +21,8 @@ function preexec() {
 }
 
 function precmd() {
+  # We do these invalid shenanigans because zsh executes precmd but not preexec
+  # if an empty line is entered.
   if [[ $last_start_time != 'invalid' ]]
   then
     last_run_time=$((EPOCHREALTIME - last_start_time))
@@ -24,6 +30,7 @@ function precmd() {
   fi
 }
 
+# The (human readable) run time of the last command executed.
 function command_time() {
   if (( $last_run_time > $ZSH_THEME_COMMAND_TIME_THRESHOLD ))
   then
@@ -56,11 +63,26 @@ function is_ssh() {
   return 1
 }
 
-function maybe_host() {
+# The hostname if connected on ssh.
+function ssh_host() {
   if is_ssh; then
-   echo '%{$fg[cyan]%}%m:%{$reset_color%}'
+    echo -n $ZSH_THEME_SSH_HOST_PREFIX
+    echo -n "[%m]"
+    echo -n $ZSH_THEME_SSH_HOST_SUFFIX
   fi
 }
 
-PROMPT='$(maybe_host)%{$fg[blue]%}%~%#%{$reset_color%} '
-RPROMPT='$(git_prompt_info)$(command_time)%{$reset_color%}'
+# Color the text with the appropriate foreground color.
+# Usage:
+#   c <color> <text>
+#
+# Example:
+#   c red %~
+function c() {
+  color=$1
+  shift argv
+  echo -n "%{$fg[$color]%}$argv%{$reset_color%}"
+}
+
+PROMPT='$(c magenta "%#")%{$reset_color%} '
+RPROMPT='$(c blue "%~") $(ssh_host)$(command_time)%{$reset_color%}'
