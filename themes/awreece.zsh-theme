@@ -1,5 +1,5 @@
 # Print time from last command iff it took longer than threshold seconds.
-ZSH_THEME_COMMAND_TIME_THRESHOLD=1.0
+ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
 ZSH_THEME_COMMAND_TIME_PREFIX=""
 ZSH_THEME_COMMAND_TIME_SUFFIX=""
 
@@ -62,7 +62,7 @@ function is_ssh() {
 function ssh_host() {
   if is_ssh; then
     echo -n $ZSH_THEME_SSH_HOST_PREFIX
-    echo -n "[%m]"
+    echo -n "%n@%m"
     echo -n $ZSH_THEME_SSH_HOST_SUFFIX
   fi
 }
@@ -87,20 +87,21 @@ function sc() {
 
 # Prompt will look like:
 
-# Developer%                                          ~/Developer indium 2.00s
-# ^        ^                                          ^           ^      ^
-# |        |                                          |           |      |
-# |        +-> A '#' if root shell, colored green     |           |      |
-# |            if last command was successful and     |           |      |
-# |            red otherwise.                         |           |      |
-# |                                                   |           |      |
-# +----------> Last part in current path.             |           |      |
-#                                                     |           |      |
-#              Full path to cwd (if full path is    <-+           |      |
-#              longer than 1 segment).                            |      |
-#                                                                 |      |
-#              Ssh hostname (if connected via ssh). <-------------+      |
-#                                                                        |
-#              Duration of last command.            <--------------------+
+# Developer%                                       ~/Developer alex@cmu 2.001s
+# ^        ^                                       ^           ^        ^
+# |        |                                       |           |        |
+# |        +-> A '#' if root shell, colored green  |           |        |
+# |            if last command was successful and  |           |        |
+# |            red otherwise.                      |           |        |
+# |                                                |           |        |
+# +----------> Last part in current path.          |           |        |
+#                                                  |           |        |
+#              Full path to cwd (if full path is <-+           |        |
+#              longer than 1 segment).                         |        |
+#                                                              |        |
+#              ssh user@hostname (if connected   <-------------+        |
+#              via ssh).                                                |
+#                                                                       |
+#              Duration of last command.            <-------------------+
 PROMPT='$(c blue "%1~")$(sc "%#") '
 RPROMPT='%(2~.$(c blue "%~") .)$(c cyan "$(ssh_host)")$(sc "$(command_time)")'
