@@ -33,11 +33,11 @@ function command_time() {
     if (( $last_run_time < 10 )); then
       printf "%0.3fs" $last_run_time
     elif (( $last_run_time < 60 )); then
-      printf "%.2fs" $last_run_time
+      printf "%.3fs" $last_run_time
     elif (( $last_run_time < (60 * 60) )); then
-      printf "%.2fm" $(( last_run_time / 60 ))
+      printf "%.3fm" $(( last_run_time / 60 ))
     elif (( $last_run_time < (60 * 60 * 24) )); then
-      printf "%.2fh" $(( last_run_time / (60*60) ))
+      printf "%.3fh" $(( last_run_time / (60*60) ))
     else
       printf "%.2fd" $(( last_run_time / (60*60*24) ))
     fi
@@ -103,5 +103,5 @@ function sc() {
 #              via ssh).                                                |
 #                                                                       |
 #              Duration of last command.            <-------------------+
-PROMPT='$(c blue "%1~")$(sc "%#") '
+PROMPT='$(c blue "%1~")$(c magenta "%#") '
 RPROMPT='%(2~.$(c blue "%~") .)$(c cyan "$(ssh_host)")$(sc "$(command_time)")'
