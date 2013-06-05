@@ -1,15 +1,10 @@
-ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg[yellow]%}["
-ZSH_THEME_GIT_PROMPT_SUFFIX="%{$fg[yellow]%}]%{$reset_color%} "
-ZSH_THEME_GIT_PROMPT_DIRTY="%{$fg[red]%}*%{$reset_color%}"
-ZSH_THEME_GIT_PROMPT_CLEAN=""
-
 # Print time from last command iff it took longer than threshold seconds.
-ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
-ZSH_THEME_COMMAND_TIME_PREFIX="%(?.%{$fg[green]%}.%{$fg[red]%})"
-ZSH_THEME_COMMAND_TIME_SUFFIX="%{$reset_color%}"
+ZSH_THEME_COMMAND_TIME_THRESHOLD=1.0
+ZSH_THEME_COMMAND_TIME_PREFIX=""
+ZSH_THEME_COMMAND_TIME_SUFFIX=""
 
-ZSH_THEME_SSH_HOST_PREFIX="%{$fg[cyan]%}"
-ZSH_THEME_SSH_HOST_SUFFIX="%{$reset_color%} "
+ZSH_THEME_SSH_HOST_PREFIX=""
+ZSH_THEME_SSH_HOST_SUFFIX=" "
 
 zmodload zsh/datetime
 
@@ -84,5 +79,28 @@ function c() {
   echo -n "%{$fg[$color]%}$argv%{$reset_color%}"
 }
 
-PROMPT='$(c magenta "%#")%{$reset_color%} '
-RPROMPT='$(c blue "%~") $(ssh_host)$(command_time)%{$reset_color%}'
+# Success color colors the text green if the previous command succeeded and
+# red otherwise.
+function sc() {
+  echo -n "%(?.%{$fg[green]%}.%{$fg[red]%})$argv%{$reset_color%}"
+}
+
+# Prompt will look like:
+
+# Developer%                                          ~/Developer indium 2.00s
+# ^        ^                                          ^           ^      ^
+# |        |                                          |           |      |
+# |        +-> A '#' if root shell, colored green     |           |      |
+# |            if last command was successful and     |           |      |
+# |            red otherwise.                         |           |      |
+# |                                                   |           |      |
+# +----------> Last part in current path.             |           |      |
+#                                                     |           |      |
+#              Full path to cwd (if full path is    <-+           |      |
+#              longer than 1 segment).                            |      |
+#                                                                 |      |
+#              Ssh hostname (if connected via ssh). <-------------+      |
+#                                                                        |
+#              Duration of last command.            <--------------------+
+PROMPT='$(c blue "%1~")$(sc "%#") '
+RPROMPT='%(2~.$(c blue "%~") .)$(c cyan "$(ssh_host)")$(sc "$(command_time)")'
