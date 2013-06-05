@@ -31,15 +31,15 @@ function command_time() {
   then
     echo -n $ZSH_THEME_COMMAND_TIME_PREFIX
     if (( $last_run_time < 10 )); then
-      printf "%0.3fs" $last_run_time
+      printf "%6.3fs" $last_run_time
     elif (( $last_run_time < 60 )); then
-      printf "%.3fs" $last_run_time
+      printf "%6.3fs" $last_run_time
     elif (( $last_run_time < (60 * 60) )); then
-      printf "%.3fm" $(( last_run_time / 60 ))
+      printf "%6.3fm" $(( last_run_time / 60 ))
     elif (( $last_run_time < (60 * 60 * 24) )); then
-      printf "%.3fh" $(( last_run_time / (60*60) ))
+      printf "%6.3fh" $(( last_run_time / (60*60) ))
     else
-      printf "%.2fd" $(( last_run_time / (60*60*24) ))
+      printf "%6.3fd" $(( last_run_time / (60*60*24) ))
     fi
     echo -n $ZSH_THEME_COMMAND_TIME_SUFFIX
   fi
