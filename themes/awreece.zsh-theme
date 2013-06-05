@@ -86,22 +86,23 @@ function sc() {
 }
 
 # Prompt will look like:
+###############################################################################
+# +----------- Last part in current path.
+# |
+# |        +-- A '#' if root shell, colored green
+# |        |   if last command was successful and
+# |        |   red otherwise.
+# |        |
+# |        |   Duration of last command.          -----------------------+
+# |        |                                                             |
+# |        |   ssh user@hostname (if connected    --------------+        |
+# |        |   via ssh).                                        |        |
+# |        |                                                    |        |
+# |        |   Full path to cwd (if full path is  --+           |        |
+# |        |   longer than 1 segment).              |           |        |
+# v        v                                        v           v        v
+###############################################################################
+# Developer%                                        ~/Developer alex@cmu 2.001s
 
-# Developer%                                       ~/Developer alex@cmu 2.001s
-# ^        ^                                       ^           ^        ^
-# |        |                                       |           |        |
-# |        +-> A '#' if root shell, colored green  |           |        |
-# |            if last command was successful and  |           |        |
-# |            red otherwise.                      |           |        |
-# |                                                |           |        |
-# +----------> Last part in current path.          |           |        |
-#                                                  |           |        |
-#              Full path to cwd (if full path is <-+           |        |
-#              longer than 1 segment).                         |        |
-#                                                              |        |
-#              ssh user@hostname (if connected   <-------------+        |
-#              via ssh).                                                |
-#                                                                       |
-#              Duration of last command.            <-------------------+
 PROMPT='$(c blue "%1~")$(c magenta "%#") '
 RPROMPT='%(2~.$(c blue "%~") .)$(c cyan "$(ssh_host)")$(sc "$(command_time)")'
