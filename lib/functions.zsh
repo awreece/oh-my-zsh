@@ -16,5 +16,6 @@ function take() {
 }
 
 function change_theme() {
+  export ZSH_THEME=$1
   source "$ZSH/themes/$1.zsh-theme"
 }
