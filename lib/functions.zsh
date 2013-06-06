@@ -15,3 +15,6 @@ function take() {
   cd $1
 }
 
+function change_theme() {
+  source "$ZSH/themes/$1.zsh-theme"
+}
