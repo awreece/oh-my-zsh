@@ -3,9 +3,12 @@ ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
 ZSH_THEME_COMMAND_TIME_PREFIX=""
 ZSH_THEME_COMMAND_TIME_SUFFIX=""
 
-# Notify if command takes longer than threshold seconds (and not on ssh).
+# Notify if command takes longer than threshold seconds.
 ZSH_THEME_NOTIFY_THRESHOLD=60.0
 ZSH_THEME_NOTIFY_FUNCTION=zsh_theme_notify_function
+# Don't notify for these commands.
+ZSH_THEME_NOTIFY_BLACKLIST=(vim ssh less \
+                            "git commit" "git add -p" "git rebase -i")
 
 ZSH_THEME_SSH_HOST_PREFIX="["
 ZSH_THEME_SSH_HOST_SUFFIX="] "
@@ -43,6 +46,25 @@ function preexec() {
   last_command=$1
 }
 
+function should_notify() {
+  # Check that it is not in the blacklist.
+  for command in $ZSH_THEME_NOTIFY_BLACKLIST; do
+    if [[ $last_command =~ $command ]]; then
+      return 1
+    fi
+  done
+  return 0
+
+  # This bit of magic is:
+  #     test that the result is the empty string
+  #     |  when we look in the blacklist array
+  #     |  |                            by reverse index
+  #     |  |                            |  when we strip all characters
+  #     |  |                            |  after the  first space.
+  #     |  |                            |  |
+  #  [[ -z ${ZSH_THEME_NOTIFY_BLACKLIST[(r)${last_command%% *}]} ]]
+}
+
 function precmd() {
   exit_status=$?
   # We do these invalid shenanigans because zsh executes precmd but not preexec
@@ -50,9 +72,11 @@ function precmd() {
   if [[ $last_start_time != 'invalid' ]]; then
     last_status=$exit_status
     last_run_time=$((EPOCHREALTIME - last_start_time))
- 
+
     if (( last_run_time > ZSH_THEME_NOTIFY_THRESHOLD )); then
-      $ZSH_THEME_NOTIFY_FUNCTION
+       if should_notify; then
+        $ZSH_THEME_NOTIFY_FUNCTION
+      fi
     fi
 
     last_start_time='invalid'
