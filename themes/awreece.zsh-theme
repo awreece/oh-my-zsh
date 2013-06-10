@@ -7,8 +7,9 @@ ZSH_THEME_COMMAND_TIME_SUFFIX=""
 ZSH_THEME_NOTIFY_THRESHOLD=60.0
 ZSH_THEME_NOTIFY_FUNCTION=zsh_theme_notify_function
 # Don't notify for these commands.
-ZSH_THEME_NOTIFY_BLACKLIST=(vim ssh less man \
-                            "git commit" "git add -p" "git rebase -i")
+ZSH_THEME_NOTIFY_BLACKLIST=(vim ssh less man nc \
+                            "git commit" "git add -p" \
+                            "git rebase -i" "git diff")
 
 ZSH_THEME_SSH_HOST_PREFIX="["
 ZSH_THEME_SSH_HOST_SUFFIX="] "
