@@ -3,45 +3,18 @@ ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
 ZSH_THEME_COMMAND_TIME_PREFIX=""
 ZSH_THEME_COMMAND_TIME_SUFFIX=""
 
+# Notify if command takes longer than threshold seconds (and not on ssh).
+ZSH_THEME_NOTIFY_THRESHOLD=60.0
+ZSH_THEME_NOTIFY_FUNCTION=zsh_theme_notify_function
+
 ZSH_THEME_SSH_HOST_PREFIX="["
 ZSH_THEME_SSH_HOST_SUFFIX="] "
 
-zmodload zsh/datetime
-
-last_run_time=0
-last_start_time=$EPOCHREALTIME
-
-function preexec() {
-  last_start_time=$EPOCHREALTIME
-}
-
-function precmd() {
-  # We do these invalid shenanigans because zsh executes precmd but not preexec
-  # if an empty line is entered.
-  if [[ $last_start_time != 'invalid' ]]
-  then
-    last_run_time=$((EPOCHREALTIME - last_start_time))
-    last_start_time='invalid'
-  fi
-}
-
-# The (human readable) run time of the last command executed.
-function command_time() {
-  if (( $last_run_time > $ZSH_THEME_COMMAND_TIME_THRESHOLD ))
-  then
-    echo -n $ZSH_THEME_COMMAND_TIME_PREFIX
-    if (( $last_run_time < 10 )); then
-      printf "%6.3fs" $last_run_time
-    elif (( $last_run_time < 60 )); then
-      printf "%6.3fs" $last_run_time
-    elif (( $last_run_time < (60 * 60) )); then
-      printf "%6.3fm" $(( last_run_time / 60 ))
-    elif (( $last_run_time < (60 * 60 * 24) )); then
-      printf "%6.3fh" $(( last_run_time / (60*60) ))
-    else
-      printf "%6.3fd" $(( last_run_time / (60*60*24) ))
-    fi
-    echo -n $ZSH_THEME_COMMAND_TIME_SUFFIX
+function zsh_theme_notify_function() {
+  message=$(printf "Command \"%s\" finished (%d) after %s" \
+                   $last_command $last_status $(time_to_human $last_run_time))
+  if ! is_ssh; then
+    terminal-notifier -group zsh -message $message
   fi
 }
 
@@ -56,6 +29,62 @@ function is_ssh() {
     esac
   fi
   return 1
+}
+
+zmodload zsh/datetime
+
+last_run_time=0
+last_start_time='invalid'
+last_command=''
+last_status=0
+
+function preexec() {
+  last_start_time=$EPOCHREALTIME
+  last_command=$1
+}
+
+function precmd() {
+  exit_status=$?
+  # We do these invalid shenanigans because zsh executes precmd but not preexec
+  # if an empty line is entered.
+  if [[ $last_start_time != 'invalid' ]]; then
+    last_status=$exit_status
+    last_run_time=$((EPOCHREALTIME - last_start_time))
+ 
+    if (( last_run_time > ZSH_THEME_NOTIFY_THRESHOLD )); then
+      $ZSH_THEME_NOTIFY_FUNCTION
+    fi
+
+    last_start_time='invalid'
+    last_command=''
+  # else
+  #   # Don't print command_time when no command given.
+  #   last_run_time=0
+  fi
+}
+
+function time_to_human() {
+    if (( $1 < 10 )); then
+      printf "%6.3fs" $1
+    elif (( $1 < 60 )); then
+      printf "%6.3fs" $1
+    elif (( $1 < (60 * 60) )); then
+      printf "%6.3fm" $(( 1 / 60 ))
+    elif (( $1 < (60 * 60 * 24) )); then
+      printf "%6.3fh" $(( 1 / (60*60) ))
+    else
+      printf "%6.3fd" $(( 1 / (60*60*24) ))
+    fi
+}
+
+# The (human readable) run time of the last command executed.
+function command_time() {
+  if (( $last_run_time > $ZSH_THEME_COMMAND_TIME_THRESHOLD ))
+  then
+    echo -n $ZSH_THEME_COMMAND_TIME_PREFIX
+    time_to_human $last_run_time
+    echo -n $ZSH_THEME_COMMAND_TIME_SUFFIX
+  fi
 }
 
 # The hostname if connected on ssh.
