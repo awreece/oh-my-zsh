@@ -122,19 +122,19 @@ function ssh_host() {
 
 # Color the text with the appropriate foreground color.
 # Usage:
-#   c <color> <text>
+#   color <color> <text>
 #
 # Example:
-#   c red %~
-function c() {
-  color=$1
+#   color red %~
+function color() {
+  c=$1
   shift argv
-  echo -n "%{$fg[$color]%}$argv%{$reset_color%}"
+  echo -n "%{$fg[$c]%}$argv%{$reset_color%}"
 }
 
 # Success color colors the text green if the previous command succeeded and
 # red otherwise.
-function sc() {
+function success_color() {
   echo -n "%(?.%{$fg[green]%}.%{$fg[red]%})$argv%{$reset_color%}"
 }
 
@@ -153,9 +153,24 @@ function sc() {
 # |        |                                                    |        |
 # |        |   Full path to cwd (if full path is  --+           |        |
 # |        |   longer than 1 segment).              |           |        |
-# v        v                                        v           v        v
+# |        |                                        |           |        |
+# |        |   Number of jobs if any.          --+  |           |        |
+# v        v                                     v  v           v        v
 ###############################################################################
-# Developer%                                        ~/Developer alex@cmu 2.001s
+# Developer%                                     1& ~/Developer alex@cmu 2.001s
 
-PROMPT='$(c blue "%1~")$(c magenta "%#") '
-RPROMPT='%(2~.$(c blue "%~") .)$(c cyan "$(ssh_host)")$(sc "$(command_time)")'
+function prompt() {
+  color blue "%1~"
+  color magenta "%#"
+  echo -n " "
+}
+
+function rprompt() {
+  echo -n "%(1j.$(color yellow '%j&') .)"
+  echo -n "%(2~.$(color blue '%~') .)"
+  color cyan "$(ssh_host)"
+  success_color "$(command_time)"
+}
+
+PROMPT='$(prompt)'
+RPROMPT='$(rprompt)'
