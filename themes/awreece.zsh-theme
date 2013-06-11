@@ -6,15 +6,25 @@ ZSH_THEME_COMMAND_TIME_SUFFIX=""
 ZSH_THEME_SSH_HOST_PREFIX="["
 ZSH_THEME_SSH_HOST_SUFFIX="] "
 
+# Returns true if the current os is Mac OSX.
 function is_mac() {
   [[ $(uname -a) =~ "Darwin" ]]
 }
+
+zmodload zsh/datetime  # For EPOCHREALTIME.
+
+last_run_time=0
+last_start_time='invalid'
+last_command=''
+last_status=0
 
 if is_mac; then
   terminal_window_id=$(osascript -e 'tell application "Terminal" to ¬' \
                                  -e '  get id of front window')
 fi
 
+# Returns true if the current window has focus.
+# Warning: Currently only implementd on mac.
 function is_foreground() {
   if is_mac; then
     foreground_id=$(osascript -e 'tell application "System Events" to ¬' \
@@ -27,18 +37,6 @@ function is_foreground() {
   # On a not mac, this will always return true since foreground_id and
   # terminal_window_id are both undefined so empty strings.
   [[ $foreground_id == $terminal_window_id ]]
-}
-
-function notify_function() {
-  message=$(printf "Command \"%s\" finished (%d) after %s" \
-                   $last_command $last_status $(time_to_human $last_run_time))
-  if is_mac; then
-    callback="osascript -e 'tell application \"Terminal\"' \
-                        -e 'activate' \
-                        -e 'set index of window id $terminal_window_id to 1' \
-                        -e 'end tell'"
-    terminal-notifier -group zsh -message $message -execute $callback >/dev/null
-  fi
 }
 
 # Return a zero exit status iff the current shell is controlled via ssh.
@@ -54,18 +52,13 @@ function is_ssh() {
   return 1
 }
 
-zmodload zsh/datetime
-
-last_run_time=0
-last_start_time='invalid'
-last_command=''
-last_status=0
-
+# Executed right before a command is exectued.
 function preexec() {
   last_start_time=$EPOCHREALTIME
   last_command=$1
 }
 
+# Executed right after a command completes.
 function precmd() {
   exit_status=$?
   # We do these invalid shenanigans because zsh executes precmd but not preexec
@@ -86,6 +79,21 @@ function precmd() {
   fi
 }
 
+# Sends a notification that the last command terminated.
+# Warning: currently only implemented for mac.
+function notify_function() {
+  message=$(printf "Command \"%s\" finished (%d) after %s" \
+                   $last_command $last_status $(time_to_human $last_run_time))
+  if is_mac; then
+    callback="osascript -e 'tell application \"Terminal\"' \
+                        -e 'activate' \
+                        -e 'set index of window id $terminal_window_id to 1' \
+                        -e 'end tell'"
+    terminal-notifier -group zsh -message $message -execute $callback >/dev/null
+  fi
+}
+
+# Converts a floating point time in seconds to a human readable string.
 function time_to_human() {
     seconds=$1
     if (( seconds < 10 )); then
