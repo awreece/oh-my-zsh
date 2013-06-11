@@ -164,7 +164,7 @@ function is_ssh() {
     return 0
   else
     case $(ps -o comm= -p $PPID) in
-      sshd|*/sshd) return 1;;
+      sshd|*/sshd) return 0;;
     esac
   fi
   return 1
