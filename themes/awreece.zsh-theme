@@ -153,7 +153,7 @@ function notify_function() {
                         -e 'activate' \
                         -e 'set index of window id $terminal_window_id to 1' \
                         -e 'end tell'"
-    terminal-notifier -group zsh -message $message -execute $callback >/dev/null
+    terminal-notifier -message $message -execute $callback >/dev/null
   fi
 }
 
