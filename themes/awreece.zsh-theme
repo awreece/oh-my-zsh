@@ -3,22 +3,41 @@ ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
 ZSH_THEME_COMMAND_TIME_PREFIX=""
 ZSH_THEME_COMMAND_TIME_SUFFIX=""
 
-# Notify if command takes longer than threshold seconds.
-ZSH_THEME_NOTIFY_THRESHOLD=60.0
-ZSH_THEME_NOTIFY_FUNCTION=zsh_theme_notify_function
-# Don't notify for these commands.
-ZSH_THEME_NOTIFY_BLACKLIST=(vim ssh less man nc \
-                            "git commit" "git add -p" \
-                            "git rebase -i" "git diff")
-
 ZSH_THEME_SSH_HOST_PREFIX="["
 ZSH_THEME_SSH_HOST_SUFFIX="] "
 
-function zsh_theme_notify_function() {
+function is_mac() {
+  [[ $(uname -a) =~ "Darwin" ]]
+}
+
+if is_mac; then
+  terminal_window_id=$(osascript -e 'tell application "Terminal" to ¬' \
+                                 -e '  get id of front window')
+fi
+
+function is_foreground() {
+  if is_mac; then
+    foreground_id=$(osascript -e 'tell application "System Events" to ¬' \
+                              -e '  set foreground_app_name to ¬' \
+                              -e '    name of first application process ¬' \
+                              -e '    whose frontmost is true' \
+                              -e 'tell application foreground_app_name to ¬' \
+                              -e '  get id of front window')
+  fi
+  # On a not mac, this will always return true since foreground_id and
+  # terminal_window_id are both undefined so empty strings.
+  [[ $foreground_id == $terminal_window_id ]]
+}
+
+function notify_function() {
   message=$(printf "Command \"%s\" finished (%d) after %s" \
                    $last_command $last_status $(time_to_human $last_run_time))
-  if ! is_ssh; then
-    terminal-notifier -group zsh -message $message
+  if is_mac; then
+    callback="osascript -e 'tell application \"Terminal\"' \
+                        -e 'activate' \
+                        -e 'set index of window id $terminal_window_id to 1' \
+                        -e 'end tell'"
+    terminal-notifier -group zsh -message $message -execute $callback >/dev/null
   fi
 }
 
@@ -47,25 +66,6 @@ function preexec() {
   last_command=$1
 }
 
-function should_notify() {
-  # Check that it is not in the blacklist.
-  for command in $ZSH_THEME_NOTIFY_BLACKLIST; do
-    if [[ $last_command =~ $command ]]; then
-      return 1
-    fi
-  done
-  return 0
-
-  # This bit of magic is:
-  #     test that the result is the empty string
-  #     |  when we look in the blacklist array
-  #     |  |                            by reverse index
-  #     |  |                            |  when we strip all characters
-  #     |  |                            |  after the  first space.
-  #     |  |                            |  |
-  #  [[ -z ${ZSH_THEME_NOTIFY_BLACKLIST[(r)${last_command%% *}]} ]]
-}
-
 function precmd() {
   exit_status=$?
   # We do these invalid shenanigans because zsh executes precmd but not preexec
@@ -74,12 +74,10 @@ function precmd() {
     last_status=$exit_status
     last_run_time=$((EPOCHREALTIME - last_start_time))
 
-    if (( last_run_time > ZSH_THEME_NOTIFY_THRESHOLD )); then
-       if should_notify; then
-        $ZSH_THEME_NOTIFY_FUNCTION
-      fi
+    if ! is_foreground; then
+      notify_function $last_command $last_start_time $last_run_time $last_status
     fi
-
+   
     last_start_time='invalid'
     last_command=''
   # else
@@ -89,22 +87,23 @@ function precmd() {
 }
 
 function time_to_human() {
-    if (( $1 < 10 )); then
-      printf "%6.3fs" $1
-    elif (( $1 < 60 )); then
-      printf "%6.3fs" $1
-    elif (( $1 < (60 * 60) )); then
-      printf "%6.3fm" $(( 1 / 60 ))
-    elif (( $1 < (60 * 60 * 24) )); then
-      printf "%6.3fh" $(( 1 / (60*60) ))
+    seconds=$1
+    if (( seconds < 10 )); then
+      printf "%6.3fs" $seconds
+    elif (( seconds < 60 )); then
+      printf "%6.3fs" $seconds
+    elif (( seconds < (60*60) )); then
+      printf "%6.3fm" $(( seconds / 60 ))
+    elif (( seconds < (60*60*24) )); then
+      printf "%6.3fh" $(( seconds / (60*60) ))
     else
-      printf "%6.3fd" $(( 1 / (60*60*24) ))
+      printf "%6.3fd" $(( seconds / (60*60*24) ))
     fi
 }
 
 # The (human readable) run time of the last command executed.
 function command_time() {
-  if (( $last_run_time > $ZSH_THEME_COMMAND_TIME_THRESHOLD ))
+  if (( last_run_time > ZSH_THEME_COMMAND_TIME_THRESHOLD ))
   then
     echo -n $ZSH_THEME_COMMAND_TIME_PREFIX
     time_to_human $last_run_time
