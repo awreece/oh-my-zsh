@@ -25,18 +25,18 @@ fi
 
 # Returns true if the current window has focus.
 # Warning: Currently only implementd on mac.
-function is_foreground() {
+function is_focused() {
   if is_mac; then
-    foreground_id=$(osascript -e 'tell application "System Events" to ¬' \
-                              -e '  set foreground_app_name to ¬' \
-                              -e '    name of first application process ¬' \
-                              -e '    whose frontmost is true' \
-                              -e 'tell application foreground_app_name to ¬' \
-                              -e '  get id of front window')
+    focus_window_id=$(osascript -e 'tell application "System Events" to ¬' \
+                                -e '  set focus_app_name to ¬' \
+                                -e '    name of first application process ¬' \
+                                -e '    whose frontmost is true' \
+                                -e 'tell application focus_app_name to ¬' \
+                                -e '  get id of front window')
   fi
-  # On a not mac, this will always return true since foreground_id and
+  # On a not mac, this will always return true since focus_id and
   # terminal_window_id are both undefined so empty strings.
-  [[ $foreground_id == $terminal_window_id ]]
+  [[ $focus_window_id == $terminal_window_id ]]
 }
 
 # Return a zero exit status iff the current shell is controlled via ssh.
@@ -67,7 +67,7 @@ function precmd() {
     last_status=$exit_status
     last_run_time=$((EPOCHREALTIME - last_start_time))
 
-    if ! is_foreground; then
+    if ! is_focused; then
       notify_function
     fi
    
