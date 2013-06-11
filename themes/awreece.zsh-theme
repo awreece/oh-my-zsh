@@ -75,35 +75,6 @@ if is_mac; then
                                  -e '  get id of front window')
 fi
 
-# Returns true if the current window has focus.
-# Warning: Currently only implementd on mac.
-function is_focused() {
-  if is_mac; then
-    focus_window_id=$(osascript -e 'tell application "System Events" to ¬' \
-                                -e '  set focus_app_name to ¬' \
-                                -e '    name of first application process ¬' \
-                                -e '    whose frontmost is true' \
-                                -e 'tell application focus_app_name to ¬' \
-                                -e '  get id of front window')
-  fi
-  # On a not mac, this will always return true since focus_id and
-  # terminal_window_id are both undefined so empty strings.
-  [[ $focus_window_id == $terminal_window_id ]]
-}
-
-# Return a zero exit status iff the current shell is controlled via ssh.
-function is_ssh() {
-  # http://unix.stackexchange.com/a/9607/18208
-  if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
-    return 0
-  else
-    case $(ps -o comm= -p $PPID) in
-      sshd|*/sshd) return 1;;
-    esac
-  fi
-  return 1
-}
-
 # Executed right before a command is exectued.
 function preexec() {
   last_start_time=$EPOCHREALTIME
@@ -131,17 +102,13 @@ function precmd() {
   fi
 }
 
-# Sends a notification that the last command terminated.
-# Warning: currently only implemented for mac.
-function notify_function() {
-  message=$(printf "Command \"%s\" finished (%d) after %s" \
-                   $last_command $last_status $(time_to_human $last_run_time))
-  if is_mac; then
-    callback="osascript -e 'tell application \"Terminal\"' \
-                        -e 'activate' \
-                        -e 'set index of window id $terminal_window_id to 1' \
-                        -e 'end tell'"
-    terminal-notifier -group zsh -message $message -execute $callback >/dev/null
+# The (human readable) run time of the last command executed.
+function command_time() {
+  if (( last_run_time > ZSH_THEME_COMMAND_TIME_THRESHOLD ))
+  then
+    echo -n $ZSH_THEME_COMMAND_TIME_PREFIX
+    time_to_human $last_run_time
+    echo -n $ZSH_THEME_COMMAND_TIME_SUFFIX
   fi
 }
 
@@ -161,14 +128,47 @@ function time_to_human() {
     fi
 }
 
-# The (human readable) run time of the last command executed.
-function command_time() {
-  if (( last_run_time > ZSH_THEME_COMMAND_TIME_THRESHOLD ))
-  then
-    echo -n $ZSH_THEME_COMMAND_TIME_PREFIX
-    time_to_human $last_run_time
-    echo -n $ZSH_THEME_COMMAND_TIME_SUFFIX
+# Returns true if the current window has focus.
+# Warning: Currently only implementd on mac.
+function is_focused() {
+  if is_mac; then
+    focus_window_id=$(osascript -e 'tell application "System Events" to ¬' \
+                                -e '  set focus_app_name to ¬' \
+                                -e '    name of first application process ¬' \
+                                -e '    whose frontmost is true' \
+                                -e 'tell application focus_app_name to ¬' \
+                                -e '  get id of front window')
   fi
+  # On a not mac, this will always return true since focus_id and
+  # terminal_window_id are both undefined so empty strings.
+  [[ $focus_window_id == $terminal_window_id ]]
+}
+
+# Sends a notification that the last command terminated.
+# Warning: currently only implemented for mac.
+function notify_function() {
+  message=$(printf "Command \"%s\" finished (%d) after %s." \
+                   $last_command $last_status $(time_to_human $last_run_time))
+  if is_mac; then
+    callback="osascript -e 'tell application \"Terminal\"' \
+                        -e 'activate' \
+                        -e 'set index of window id $terminal_window_id to 1' \
+                        -e 'end tell'"
+    terminal-notifier -group zsh -message $message -execute $callback >/dev/null
+  fi
+}
+
+# Return a zero exit status iff the current shell is controlled via ssh.
+function is_ssh() {
+  # http://unix.stackexchange.com/a/9607/18208
+  if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
+    return 0
+  else
+    case $(ps -o comm= -p $PPID) in
+      sshd|*/sshd) return 1;;
+    esac
+  fi
+  return 1
 }
 
 # The hostname if connected on ssh.
