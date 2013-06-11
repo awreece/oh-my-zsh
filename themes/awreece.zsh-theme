@@ -1,5 +1,4 @@
 # A clean zsh theme for oh-my-zsh.
-# Copyright 2013 Alex Reece.
 #
 # This theme has a minimal left hand prompt and a simple right hand prompt that
 # displays meaningful information when relevant (see below for full details).
