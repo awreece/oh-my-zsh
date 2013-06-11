@@ -1,4 +1,17 @@
-# Print time from last command iff it took longer than threshold seconds.
+# A clean zsh theme for oh-my-zsh.
+# Copyright 2013 Alex Reece.
+#
+# This theme has a minimal left hand prompt and a simple right hand prompt that
+# displays meaningful information when relevant (see below for full details).
+#
+# In addition, it will show the execution time and exit status of the last
+# command executed and will notify (on mac os x) when the last command
+# completed but the terminal does not focus.
+#
+# Some behavior can be controlled with variables below.
+
+# Print time from last command iff it took longer than threshold seconds. Set
+# to zero to always show.
 ZSH_THEME_COMMAND_TIME_THRESHOLD=0.0
 ZSH_THEME_COMMAND_TIME_PREFIX=""
 ZSH_THEME_COMMAND_TIME_SUFFIX=""
@@ -6,7 +19,46 @@ ZSH_THEME_COMMAND_TIME_SUFFIX=""
 ZSH_THEME_SSH_HOST_PREFIX="["
 ZSH_THEME_SSH_HOST_SUFFIX="] "
 
-# Returns true if the current os is Mac OSX.
+# Prompt will look like:
+###############################################################################
+# +----------- Last part in path to current working directory.
+# |
+# |        +-- A '#' if root shell, colored green if the last command was
+# |        |   successful and red otherwise.
+# |        |
+# |        |   Duration of last command, colored green if last command --+
+# |        |   was successful and red otherwise.                         |
+# |        |                                                             |
+# |        |   ssh user and hostname -------------------------+          |
+# |        |   (if connected via ssh).                        |          |
+# |        |                                                  |          |
+# |        |   Full path to current working --+               |          |
+# |        |   directory (if longer than      |               |          |
+# |        |   than 1 segment).               |               |          |
+# |        |                                  |               |          |
+# |        |   Number of background jobs --+  |               |          |
+# |        |   (if any).                   |  |               |          |
+# v        v                               v  v               v          v
+###############################################################################
+# Developer%                               1& ~/bin/Developer [alex@cmu] 2.001s
+
+function prompt() {
+  color blue "%1~"
+  color magenta "%#"
+  echo -n " "
+}
+
+function rprompt() {
+  echo -n "%(1j.$(color yellow '%j&') .)"
+  echo -n "%(2~.$(color blue '%~') .)"
+  color cyan "$(ssh_host)"
+  success_color "$(command_time)"
+}
+
+PROMPT='$(prompt)'
+RPROMPT='$(rprompt)'
+
+# Returns true if the current OS is Mac OSX.
 function is_mac() {
   [[ $(uname -a) =~ "Darwin" ]]
 }
@@ -70,7 +122,7 @@ function precmd() {
     if ! is_focused; then
       notify_function
     fi
-   
+
     last_start_time='invalid'
     last_command=''
   # else
@@ -145,40 +197,3 @@ function color() {
 function success_color() {
   echo -n "%(?.%{$fg[green]%}.%{$fg[red]%})$argv%{$reset_color%}"
 }
-
-# Prompt will look like:
-###############################################################################
-# +----------- Last part in current path.
-# |
-# |        +-- A '#' if root shell, colored green
-# |        |   if last command was successful and
-# |        |   red otherwise.
-# |        |
-# |        |   Duration of last command.          -----------------------+
-# |        |                                                             |
-# |        |   ssh user@hostname (if connected    --------------+        |
-# |        |   via ssh).                                        |        |
-# |        |                                                    |        |
-# |        |   Full path to cwd (if full path is  --+           |        |
-# |        |   longer than 1 segment).              |           |        |
-# |        |                                        |           |        |
-# |        |   Number of jobs if any.          --+  |           |        |
-# v        v                                     v  v           v        v
-###############################################################################
-# Developer%                                     1& ~/Developer alex@cmu 2.001s
-
-function prompt() {
-  color blue "%1~"
-  color magenta "%#"
-  echo -n " "
-}
-
-function rprompt() {
-  echo -n "%(1j.$(color yellow '%j&') .)"
-  echo -n "%(2~.$(color blue '%~') .)"
-  color cyan "$(ssh_host)"
-  success_color "$(command_time)"
-}
-
-PROMPT='$(prompt)'
-RPROMPT='$(rprompt)'
