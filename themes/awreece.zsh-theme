@@ -75,7 +75,7 @@ function precmd() {
     last_run_time=$((EPOCHREALTIME - last_start_time))
 
     if ! is_foreground; then
-      notify_function $last_command $last_start_time $last_run_time $last_status
+      notify_function
     fi
    
     last_start_time='invalid'
