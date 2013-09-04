@@ -62,6 +62,11 @@ function is_mac() {
   [[ $(uname -a) =~ "Darwin" ]]
 }
 
+# Returns true if the current OS is ubuntu
+function is_ubuntu() {
+  [[ $(uname -a) =~ "ubuntu" ]]
+}
+
 zmodload zsh/datetime  # For EPOCHREALTIME.
 
 last_run_time=0
@@ -69,9 +74,25 @@ last_start_time='invalid'
 last_command=''
 last_status=0
 
+# Return a zero exit status iff the current shell is controlled via ssh.
+function is_ssh() {
+  # http://unix.stackexchange.com/a/9607/18208
+  if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
+    return 0
+  else
+    case $(ps -o comm= -p $PPID) in
+      sshd|*/sshd) return 0;;
+    esac
+  fi
+  return 1
+}
+
 if is_mac; then
   terminal_window_id=$(osascript -e 'tell application "Terminal" to ¬' \
                                  -e '  get id of front window')
+elif is_ubuntu && ! is_ssh; then
+  terminal_window_id=$(xdpyinfo | grep -Eo 'window 0x[^,]+' |\
+                                  awk '{print $2 }')
 fi
 
 # Executed right before a command is exectued.
@@ -128,7 +149,7 @@ function time_to_human() {
 }
 
 # Returns true if the current window has focus.
-# Warning: Currently only implementd on mac.
+# Warning: Currently only implementd on mac and ubuntu.
 function is_focused() {
   if is_mac; then
     focus_window_id=$(osascript -e 'tell application "System Events" to ¬' \
@@ -137,8 +158,12 @@ function is_focused() {
                                 -e '    whose frontmost is true' \
                                 -e 'tell application focus_app_name to ¬' \
                                 -e '  get id of front window')
+  elif is_ubuntu && ! is_ssh; then
+    focus_window_id=$(xdpyinfo | grep -Eo 'window 0x[^,]+' |\
+                                    awk '{print $2 }')
   fi
-  # On a not mac, this will always return true since focus_id and
+
+  # On a not mac/ubuntu, this will always return true since focus_id and
   # terminal_window_id are both undefined so empty strings.
   [[ $focus_window_id == $terminal_window_id ]]
 }
@@ -154,20 +179,9 @@ function notify_function() {
                         -e 'set index of window id $terminal_window_id to 1' \
                         -e 'end tell'"
     terminal-notifier -message $message -execute $callback >/dev/null
+  elif is_ubuntu; then
+    notify-send Terminal $message
   fi
-}
-
-# Return a zero exit status iff the current shell is controlled via ssh.
-function is_ssh() {
-  # http://unix.stackexchange.com/a/9607/18208
-  if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
-    return 0
-  else
-    case $(ps -o comm= -p $PPID) in
-      sshd|*/sshd) return 0;;
-    esac
-  fi
-  return 1
 }
 
 # The hostname if connected on ssh.
