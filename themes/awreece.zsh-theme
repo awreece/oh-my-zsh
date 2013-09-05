@@ -87,12 +87,14 @@ function is_ssh() {
   return 1
 }
 
-if is_mac; then
-  terminal_window_id=$(osascript -e 'tell application "Terminal" to ¬' \
-                                 -e '  get id of front window')
-elif is_ubuntu && ! is_ssh; then
-  terminal_window_id=$(xdpyinfo | grep -Eo 'window 0x[^,]+' |\
-                                  awk '{print $2 }')
+if ! is_ssh; then;
+  if is_mac; then
+    terminal_window_id=$(osascript -e 'tell application "Terminal" to ¬' \
+                                   -e '  get id of front window')
+  elif is_ubuntu; then
+    terminal_window_id=$(xdpyinfo | grep -Eo 'window 0x[^,]+' |\
+                                    awk '{print $2 }')
+  fi
 fi
 
 # Executed right before a command is exectued.
@@ -151,16 +153,18 @@ function time_to_human() {
 # Returns true if the current window has focus.
 # Warning: Currently only implementd on mac and ubuntu.
 function is_focused() {
-  if is_mac; then
-    focus_window_id=$(osascript -e 'tell application "System Events" to ¬' \
-                                -e '  set focus_app_name to ¬' \
-                                -e '    name of first application process ¬' \
-                                -e '    whose frontmost is true' \
-                                -e 'tell application focus_app_name to ¬' \
-                                -e '  get id of front window')
-  elif is_ubuntu && ! is_ssh; then
-    focus_window_id=$(xdpyinfo | grep -Eo 'window 0x[^,]+' |\
-                                    awk '{print $2 }')
+  if ! is_ssh; then
+    if is_mac; then
+      focus_window_id=$(osascript -e 'tell application "System Events" to ¬' \
+                                  -e '  set focus_app_name to ¬' \
+                                  -e '    name of first application process ¬' \
+                                  -e '    whose frontmost is true' \
+                                  -e 'tell application focus_app_name to ¬' \
+                                  -e '  get id of front window')
+    elif is_ubuntu; then
+      focus_window_id=$(xdpyinfo | grep -Eo 'window 0x[^,]+' |\
+                                      awk '{print $2 }')
+    fi
   fi
 
   # On a not mac/ubuntu, this will always return true since focus_id and
@@ -169,7 +173,7 @@ function is_focused() {
 }
 
 # Sends a notification that the last command terminated.
-# Warning: currently only implemented for mac.
+# Warning: currently only implemented for mac and ubuntu.
 function notify_function() {
   message=$(printf "Command \"%s\" finished (%d) after %s." \
                    $last_command $last_status $(time_to_human $last_run_time))
